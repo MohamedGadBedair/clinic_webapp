@@ -14,13 +14,18 @@ class User(Base):
     username:Mapped[str]=mapped_column(unique=True,nullable=False)
     email:Mapped[str]=mapped_column(unique=True,nullable=False)
     password_hash:Mapped[str|None]=mapped_column(String(200),nullable=True)
-
+    validated:Mapped[bool]=mapped_column(default=False)
+    
     image_file:Mapped[str|None]=mapped_column(nullable=True,default=None)
 
     created_at:Mapped[datetime]=mapped_column(default=datetime.now(UTC))
     updated_at:Mapped[datetime]=mapped_column(default=datetime.now(UTC),onupdate=datetime.now(UTC))
     
     reset_tokens:Mapped[list['PasswordResetToken']]=relationship(
+        back_populates='user',
+        cascade='all, delete-orphan'
+    )
+    validate_Email_token:Mapped[list['ValidateEmailToken']]=relationship(
         back_populates='user',
         cascade='all, delete-orphan'
     )
@@ -47,3 +52,19 @@ class PasswordResetToken(Base):
         nullable=False,
     )
     user: Mapped[User] = relationship(back_populates="reset_tokens")
+
+class ValidateEmailToken(Base):
+    __tablename__ = "validate_email_token"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+    )
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+    user: Mapped[User] = relationship(back_populates="validate_Email_token")

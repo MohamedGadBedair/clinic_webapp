@@ -1,3 +1,6 @@
+from authlib.integrations.starlette_client import OAuth
+from config import settings
+
 from email.message import EmailMessage
 
 import aiosmtplib
@@ -7,7 +10,21 @@ from config import settings
 
 templates = Jinja2Templates(directory="templates")
 
+# ====================={GOOGLE OAUTH2 CONFIGURATION}=======================
+oauth = OAuth()
+oauth.register(
+    "google",
+    access_token_params=None,
+    client_id=settings.google_client_id,
+    client_secret=settings.google_client_secret.get_secret_value(),
+    server_metadata_url="https://accounts.google.com/.well-known/openidconfiguration",
+    access_token_url="https://accounts.google.com/o/oauth2/token",
+    authorize_url="https://accounts.google.com/o/oauth2/auth",
+    api_base_url="https://www.googleapis.com/oauth2/v1/",
+    client_kwargs={"scope": "openid email profile"},
+)
 
+# ===================={EMAIL SENDING FUNCTION}============================
 async def send_email(
     to_email: str,
     subject: str,
@@ -35,7 +52,7 @@ async def send_email(
             start_tls=settings.mail_use_tls,
         )
 
-
+# ==================={PASSWORD RESET EMAIL FUNCTION}=======================
 async def send_password_reset_email(to_email: str, username: str, token: str) -> None:
     reset_url = f"{settings.frontend_url}/reset-password?token={token}"
     number_of_minutes = settings.reset_token_expire_minutes
@@ -53,12 +70,46 @@ async def send_password_reset_email(to_email: str, username: str, token: str) ->
   If you didn't request this, you can safely ignore this email.
 
   Best regards,
-  The FastAPI Blog Team
+  The Clinic webApp  Team
   """
-
+    # print(f'email senting to {to_email}')
     await send_email(
         to_email=to_email,
-        subject="Reset Your Password - FastAPI Blog",
+        subject="Reset Your Password -  Clinic webApp",
         plain_text=plain_text,
         html_content=html_content,
     )
+    # print(f'email sented to {to_email}')
+
+# =================={EMAIL VALIDATION EMAIL FUNCTION}=======================
+async def send_email_validation_email(to_email: str, username: str, token: str) -> None:
+    validation_url = f"{settings.frontend_url}/api/users/vialidate_email/{token}"
+    number_of_minutes = settings.reset_token_expire_minutes
+    template = templates.env.get_template("email/email_validation.html")
+    html_content = template.render(validation_url=validation_url, username=username, number_of_minutes=number_of_minutes)
+
+    plain_text = f"""Hi {username},
+    Please validate your email address by clicking the link below:
+
+    {validation_url}
+
+      This link will expire in {number_of_minutes} minutes.
+
+    If you didn't create an account, you can safely ignore this email.
+
+    If the button doesn't work, copy and paste this link into your browser:
+
+    {validation_url}
+
+    Best regards,
+    The Clinic webApp Team
+    """
+    print(f'email senting to {to_email}')
+    await send_email(
+        to_email=to_email,
+        subject="Validate Your Email - Clinic webApp",
+        plain_text=plain_text,
+        html_content=html_content,
+    )
+    print(f'email sented to {to_email}')
+

@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker,create_async
 
 from config import settings
 
-database_url= f'{settings.pooling_db_name}://{settings.pooling_database_username}:{settings.pooling_database_password.get_secret_value()}@{settings.pooling_database_hostname}:{settings.pooling_database_port}/{settings.pooling_database_name}'
+database_url= settings.db_url
 
 engine=create_async_engine(database_url)
 

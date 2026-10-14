@@ -10,7 +10,7 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import engine, get_db
-# from Routers import 
+from Routers import user
 import models
 # from schemas import 
 
@@ -27,7 +27,7 @@ app.mount('/static', StaticFiles(directory='static'), name='static')
 app.mount('/media', StaticFiles(directory='media'), name='media')
 templates= Jinja2Templates("templates")
 #===================================={API Routers}=====================================
-# app.router.include_router()
+app.router.include_router(router=user.router,prefix='/api/users',tags=['users'])
 # =================================={ Helth Chick Route }=========================================
 @app.get('/health')
 async def health_chick(db:Annotated[AsyncSession,Depends(get_db)]):
@@ -39,3 +39,14 @@ async def health_chick(db:Annotated[AsyncSession,Depends(get_db)]):
             detail='database unavailable'
         )from exc
     return{'status':'healthy'}
+
+# {Template Route}
+@app.get("/reset-password", include_in_schema=False)
+async def reset_password_page(request: Request):
+    response = templates.TemplateResponse(
+        request,
+        "reset_password.html",
+        {"title": "Reset Password"},
+    )
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response

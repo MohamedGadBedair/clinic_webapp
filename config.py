@@ -16,6 +16,11 @@ class Settings(BaseSettings):
     max_upload_size_bytes:int =5*1024*1024
     post_per_page:int = 10
     reset_token_expire_minutes:int = 10
+    validate_email_token_expire_minutes:int = 10
+
+    # Google OAuth2 secrets
+    google_client_id: str = ""
+    google_client_secret: SecretStr = SecretStr("")
 
 
     # email secrets
@@ -32,10 +37,10 @@ class Settings(BaseSettings):
     db_url:str
 
     # migration database secrets
-    db_url_migrate:str
+    # db_url_migrate:str
 
     # pooling database secrets
-    db_url_pool:str
+    # db_url_pool:str
 
         
 settings= Settings()

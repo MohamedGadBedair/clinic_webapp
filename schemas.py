@@ -17,10 +17,8 @@ class UserPablic(BaseModel):
     username:str 
     image_file: str|None
     image_path: str
-class UserPrivate(UserPablic):
-    
+class UserPrivate(UserPablic): 
     email:EmailStr
-
 #================================={Token Schemas}==========================
 class Token(BaseModel):
     access_token:str

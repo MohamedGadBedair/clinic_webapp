@@ -48,7 +48,6 @@ def create_access_token(data:dict,expires_delta:timedelta|None = None)->str:
 
 def verify_access_token(token:str)->str|None:
     """Verify aJWT access token and return the subject (user id) if valid."""
-
     try: 
         payload=jwt.decode(
             token,
@@ -99,9 +98,9 @@ async def get_current_user(
 CurrentUser=Annotated[User,Depends(get_current_user)]
 
 # ======================{Reset Password Functions}=================================================
-def genetate_reset_token()->str:
+def genetate_secret_token()->str:
     return secrets.token_urlsafe(32)
 
-def hashed_reset_token(token:str)->str:
+def hashed_secret_token(token:str)->str:
     return hashlib.sha256(token.encode()).hexdigest()
 
