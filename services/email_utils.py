@@ -19,7 +19,6 @@ oauth.register(
     server_metadata_url="https://accounts.google.com/.well-known/openid-configuration", # Note the hyphen: openid-configuration
     client_kwargs={"scope": "openid email profile"},
 )
-
 # ===================={EMAIL SENDING FUNCTION}============================
 async def send_email(
     to_email: str,
@@ -77,7 +76,7 @@ async def send_password_reset_email(to_email: str, username: str, token: str) ->
     # print(f'email sented to {to_email}')
 # =================={EMAIL VALIDATION EMAIL FUNCTION}=======================
 async def send_email_validation_email(to_email: str, username: str, token: str) -> None:
-    validation_url = f"{settings.frontend_url}/api/users/vialidate_email/{token}"
+    validation_url = f"{settings.frontend_url}/api/authentication/vialidate_email/{token}"
     number_of_minutes = settings.reset_token_expire_minutes
     template = templates.env.get_template("email/email_validation.html")
     html_content = template.render(validation_url=validation_url, username=username, number_of_minutes=number_of_minutes)

@@ -6,12 +6,11 @@ from starlette.middleware.sessions import SessionMiddleware
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
  
-from sqlalchemy import select,text
-from sqlalchemy.orm import selectinload
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import engine, get_db
-from Routers import user
+from Routers import user, authentication  
 import models
 # from schemas import 
 #=================================={app creation}=====================================
@@ -31,6 +30,7 @@ app.mount('/static', StaticFiles(directory='static'), name='static')
 app.mount('/media', StaticFiles(directory='media'), name='media')
 templates= Jinja2Templates("templates")
 #===================================={API Routers}=====================================
+app.router.include_router(router=authentication.router,prefix='/api/authentication',tags=['Authentication'])
 app.router.include_router(router=user.router,prefix='/api/users',tags=['users'])
 # =================================={ Helth Chick Route }=========================================
 @app.get('/health')
