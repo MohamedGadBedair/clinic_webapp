@@ -162,17 +162,25 @@ async def auth_callback(request: Request, db: Annotated[AsyncSession, Depends(ge
 
     if not user_info:
         return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User info not found in token")
+    
     username = user_info.get('name')
     email = user_info.get('email')
+    user_img= user_info.get('picture')
+    
     if not email:
         return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email not found in user info")
 
-    user = db.query(User).filter(User.email == email).first()
+    user_q = await db.execute(select(User).where(User.email == email))
+    user=user_q.scalars().first()
     if not user:
-        user = User(email=email, username=username, password=None,validated=True)
-        db.add(user)
-        db.commit()
-        db.refresh(user)
+        user = User(email=email, username=username, password_hash=None,validated=True)
+        if user_img:
+            user.image_file=user_img
+
+
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
     
     access_token = create_access_token(data={'user_id': str(user.id)})
     return {"access_token": access_token, "token_type": "bearer"}

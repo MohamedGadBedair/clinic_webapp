@@ -1,7 +1,8 @@
 from contextlib import asynccontextmanager
 from typing import Annotated
 
-from fastapi import FastAPI, Request, Depends,status,HTTPException
+from fastapi import FastAPI, Request, Depends, status, HTTPException
+from starlette.middleware.sessions import SessionMiddleware
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
  
@@ -13,8 +14,6 @@ from database import engine, get_db
 from Routers import user
 import models
 # from schemas import 
-
-
 #=================================={app creation}=====================================
 @asynccontextmanager
 async def lifespan(_app:FastAPI):
@@ -22,6 +21,11 @@ async def lifespan(_app:FastAPI):
     # shutdown
     await engine.dispose()
 app=FastAPI(lifespan=lifespan)
+#============================{setup session middleware}===============================
+app.add_middleware(
+    SessionMiddleware, 
+    secret_key="your-super-secret-key-here"
+)
 #==================================={files connection}=================================
 app.mount('/static', StaticFiles(directory='static'), name='static')
 app.mount('/media', StaticFiles(directory='media'), name='media')

@@ -13,14 +13,10 @@ templates = Jinja2Templates(directory="templates")
 # ====================={GOOGLE OAUTH2 CONFIGURATION}=======================
 oauth = OAuth()
 oauth.register(
-    "google",
-    access_token_params=None,
+    name="google",
     client_id=settings.google_client_id,
     client_secret=settings.google_client_secret.get_secret_value(),
-    server_metadata_url="https://accounts.google.com/.well-known/openidconfiguration",
-    access_token_url="https://accounts.google.com/o/oauth2/token",
-    authorize_url="https://accounts.google.com/o/oauth2/auth",
-    api_base_url="https://www.googleapis.com/oauth2/v1/",
+    server_metadata_url="https://accounts.google.com/.well-known/openid-configuration", # Note the hyphen: openid-configuration
     client_kwargs={"scope": "openid email profile"},
 )
 
@@ -51,7 +47,6 @@ async def send_email(
             password=settings.mail_password.get_secret_value() or None,
             start_tls=settings.mail_use_tls,
         )
-
 # ==================={PASSWORD RESET EMAIL FUNCTION}=======================
 async def send_password_reset_email(to_email: str, username: str, token: str) -> None:
     reset_url = f"{settings.frontend_url}/reset-password?token={token}"
@@ -80,7 +75,6 @@ async def send_password_reset_email(to_email: str, username: str, token: str) ->
         html_content=html_content,
     )
     # print(f'email sented to {to_email}')
-
 # =================={EMAIL VALIDATION EMAIL FUNCTION}=======================
 async def send_email_validation_email(to_email: str, username: str, token: str) -> None:
     validation_url = f"{settings.frontend_url}/api/users/vialidate_email/{token}"
