@@ -5,6 +5,8 @@ from fastapi import FastAPI, Request, Depends, status, HTTPException
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
+
  
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database import engine, get_db
 from Routers import user, authentication  
 import models
+from config import settings
 # from schemas import 
 #=================================={app creation}=====================================
 @asynccontextmanager
@@ -21,9 +24,19 @@ async def lifespan(_app:FastAPI):
     await engine.dispose()
 app=FastAPI(lifespan=lifespan)
 #============================{setup session middleware}===============================
+# 1. Add SessionMiddleware properly
 app.add_middleware(
-    SessionMiddleware, 
-    secret_key="your-super-secret-key-here"
+    SessionMiddleware,
+    secret_key=f"{settings.secret_key}",
+)
+
+# 2. Add CORSMiddleware properly
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 #==================================={files connection}=================================
 app.mount('/static', StaticFiles(directory='static'), name='static')

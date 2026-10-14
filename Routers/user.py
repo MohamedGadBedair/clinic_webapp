@@ -61,7 +61,7 @@ async def get_user(user_id:int,db:Annotated[AsyncSession,Depends(get_db)]):
         status_code=status.HTTP_204_NO_CONTENT
         )
 async def delet_user(db:Annotated[AsyncSession,Depends(get_db)],current_user:CurrentUser):
-    old_filename =current_user.image_file
+    old_filename =current_user.user_profile_img
     await db.delete(current_user)
     await db.commit()
     if old_filename:
@@ -149,8 +149,8 @@ async def upload_profile_picture(
             'Invalid image. please upload a valid imge (JPEG,PNG,GIF,WebP)'
             )from err
     
-    old_filename=current_user.image_file
-    current_user.image_file =new_filename
+    old_filename=current_user.user_profile_img
+    current_user.user_profile_img =new_filename
 
     await db.commit()
     await db.refresh(current_user)
@@ -168,15 +168,15 @@ async def delete_profile_picture(
     current_user:CurrentUser,
     db:Annotated[AsyncSession,Depends(get_db)]
 ):
-    if not current_user.image_file:
+    if not current_user.user_profile_img:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
             'No profile picture to delete'
             )
     
-    old_filename=current_user.image_file
+    old_filename=current_user.user_profile_img
 
-    current_user.image_file=None
+    current_user.user_profile_img=None
     await db.commit()
     await db.refresh(current_user)
 

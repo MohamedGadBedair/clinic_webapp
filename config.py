@@ -7,6 +7,9 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8"
     )
 
+    # cors
+    cors_origins:list[str] = ["http://localhost:3000", "http://localhost:8000", "http://localhost:8080"]
+
     # token secrets
     secret_key:SecretStr
     algorithm:str='HS256'

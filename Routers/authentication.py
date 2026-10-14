@@ -162,7 +162,7 @@ async def auth_callback(request: Request, db: Annotated[AsyncSession, Depends(ge
     if not user:
         user = User(email=email, username=username, password_hash=None,validated=True)
         if user_img:
-            user.image_file=user_img
+            user.user_profile_img=user_img
 
 
     db.add(user)

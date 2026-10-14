@@ -20,7 +20,7 @@ import secrets
 from config import settings
 
 password_hash = PasswordHash.recommended()
-oath2_scheme = OAuth2PasswordBearer(tokenUrl='api/users/token')
+oath2_scheme = OAuth2PasswordBearer(tokenUrl='api/authentication/token')
 
 #=========================={Password Functions}============================
 def hash_password(password:str)->str:
