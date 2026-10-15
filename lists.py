@@ -28,6 +28,7 @@ class MedicalFileType(enum.Enum):
     REPORT = "report"
 
 class City(enum.Enum):
+  None
   CAIRO = "Cairo"
   ALEXANDRIA = "Alexandria"
   GIZA = "Giza"

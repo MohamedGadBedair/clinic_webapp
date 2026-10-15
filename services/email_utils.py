@@ -97,12 +97,10 @@ async def send_email_validation_email(to_email: str, username: str, token: str) 
     Best regards,
     The Clinic webApp Team
     """
-    print(f'email senting to {to_email}')
     await send_email(
         to_email=to_email,
         subject="Validate Your Email - Clinic webApp",
         plain_text=plain_text,
         html_content=html_content,
     )
-    print(f'email sented to {to_email}')
 

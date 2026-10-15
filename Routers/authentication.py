@@ -69,14 +69,14 @@ async def register(
    
  
     # checkes needed if user is client
-    if user.role =='CLIENT':
+    if user.role.value =='client':
         if not user.doctor_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="doctor_id is required for clients"
             )
         # check if doctor exists
-        doctor_q=await db.execute(select(User).where(User.id==user.doctor_id,User.role=='doctor'))
+        doctor_q=await db.execute(select(User).where(User.id==user.doctor_id,User.role=='DOCTOR'))
         doctor=doctor_q.scalars().first()
         if not doctor:
             raise HTTPException(
@@ -94,8 +94,7 @@ async def register(
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user)
-
-    if user.role == 'CLIENT':
+    if user.role.value == 'client':
         # add new client to doctor list if user is client
         add_new_patient_to_doctor=DoctorClient(
             doctor_id=user.doctor_id,
@@ -103,8 +102,6 @@ async def register(
             )
         db.add(add_new_patient_to_doctor)
         await db.commit()
-
-
 
     # send email validation link
     token = genetate_secret_token()
@@ -126,8 +123,6 @@ async def register(
         username=new_user.username,
         token=token
         )
-    print(f'token:{token}')
-    print(f'token_hash:{token_hash}')
 
     return{
         'message':'check your email, you will recive vialidation instructions.'
@@ -138,14 +133,12 @@ async def validate_email(
     db:Annotated[AsyncSession,Depends(get_db)]):
 
     hash_token=hashed_secret_token(token)
-    print(hash_token)
     hash_token_q=await db.execute(select(ValidateEmailToken).where(ValidateEmailToken.token_hash==hash_token).order_by(ValidateEmailToken.created_at.asc()))
     hash_token=hash_token_q.scalars().first()
-    print(hash_token)
     if not hash_token:
         raise HTTPException(status.HTTP_400_BAD_REQUEST,'Invalid or expired token')
     
-    if hash_token.expires_at<datetime.now(UTC):
+    if hash_token.expires_at<datetime.now(UTC).replace(tzinfo=None):
         raise HTTPException(status.HTTP_400_BAD_REQUEST,'Invalid or expired token')
 
     user_q=await db.execute(select(User).where(User.id==hash_token.user_id))

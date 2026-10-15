@@ -1,5 +1,7 @@
-from pydantic import BaseModel, ConfigDict, Field, EmailStr
+from pydantic import BaseModel, ConfigDict, Field, EmailStr,UUID4
 from datetime import datetime,date,time
+from uuid import UUID
+
 from lists import(
     UserRole,
     Gender,
@@ -10,34 +12,41 @@ from lists import(
 
 
 
-#================================={User Schemas}==========================
+#====================================={User Schemas}===================================
 class UserBase(BaseModel):
     username:str = Field(min_length=2,max_length=50)
     email:EmailStr=Field(max_length=100)
 
 class UserCreate(UserBase):
-    role:UserRole=Field()
-    doctor_id:int|None=Field(default=None)
+    role:UserRole
+    doctor_id:UUID
     password:str = Field(min_length=8)
 class UserUpdate(BaseModel):
     username: str|None = Field(default=None,min_length=2,max_length=50)
     email: EmailStr|None = Field(default=None,max_length=100)
     description: str|None = Field(default=None,max_length=255)
+    phone_code:str|None=Field(default="+20",pattern=r"^\+\d{1,4}$", description="رمز الدولة بصيغة دولية")
+    phone: str|None = Field(pattern=r"^\+?[1-9]\d{1,14}$", description="رقم الهاتف بصيغة دولية")
     dob: date|None = Field(default=None)
-    phone: str = Field(pattern=r"^\+?[1-9]\d{1,14}$", description="رقم الهاتف بصيغة دولية")
     city:City|None = Field(default=None)
+    gender:Gender|None=None
 class UserPablic(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    id: int
+    id: UUID
     username:str 
-    image_file: str|None
+    role:str|None=None
+    city: str|None=None
+    phone_code:str|None
+    phone: str|None = None
+    description: str|None = None
+    gender:str|None=None
+    user_profile_img: str|None
     image_path: str
-class UserPrivate(UserBase): 
+    dob: date|None = None
+
+
+    model_config = ConfigDict(from_attributes=True)
+class UserPrivate(UserPablic): 
     email:EmailStr
-    description: str|None = Field(default=None,max_length=255)
-    dob: date|None = Field(default=None)
-    phone: str = Field(pattern=r"^\+?[1-9]\d{1,14}$", description="رقم الهاتف بصيغة دولية")
-    city:City|None = Field(default=None)
 #================================={Token Schemas}==========================
 class Token(BaseModel):
     access_token:str

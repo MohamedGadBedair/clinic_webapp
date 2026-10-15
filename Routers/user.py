@@ -41,21 +41,24 @@ router = APIRouter()
 async def get_current_user(current_user:CurrentUser):
     """Get the currently authenticated user."""
     return current_user
-# Get User API
-@router.get(
-    '/{user_id}',
-    status_code=status.HTTP_200_OK,
-    response_model=UserPablic
-    )
-async def get_user(user_id:int,db:Annotated[AsyncSession,Depends(get_db)]):
-    user_q=await db.execute(select(User).where(User.id==user_id))
-    user=user_q.scalars().first()
 
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f'user with id {user_id} not found')
+# # Get User API
+# @router.get(
+#     '/{user_id}',
+#     status_code=status.HTTP_200_OK,
+#     response_model=UserPablic
+#     )
+# async def get_user(user_id:int,db:Annotated[AsyncSession,Depends(get_db)]):
+#     user_q=await db.execute(select(User).where(User.id==user_id))
+#     user=user_q.scalars().first()
+
+#     if not user:
+#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f'user with id {user_id} not found')
     
-    return user
+#     return user
+
 # Delete User API
+
 @router.delete(
         "/",
         status_code=status.HTTP_204_NO_CONTENT
@@ -73,20 +76,18 @@ async def delet_user(db:Annotated[AsyncSession,Depends(get_db)],current_user:Cur
     response_model=UserPrivate
 )
 async def update_user(user_data:UserUpdate,db:Annotated[AsyncSession,Depends(get_db)],current_user:CurrentUser):
-    count= 0
 
     if user_data.username:
         if user_data.username.lower().strip() and user_data.username.lower().strip()!=current_user.username.lower().strip() :
-            
             # see if user name used or not 
             existing_username_q=await db.execute(select(User).options(load_only(User.username)).where(func.lower(User.username)==user_data.username.lower().strip()))
             existing_username=existing_username_q.scalars().first()
-            
+
             if existing_username:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail=f'name: {user_data.username} already userd')
             else:
                 current_user.username = user_data.username.lower().strip()
-        else: count+=1
+
     if user_data.email:
         if user_data.email.lower().strip() and user_data.email.lower().strip()!=current_user.email.lower().strip() :
             
@@ -98,11 +99,21 @@ async def update_user(user_data:UserUpdate,db:Annotated[AsyncSession,Depends(get
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail=f'email: {user_data.email} already userd')
             else:
                 current_user.email = user_data.email.lower().strip()
-        else: count+=1
 
-    if count == 2:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='no defferant in data to update')
-
+    
+    if user_data.city:
+        current_user.city=user_data.city
+    if user_data.description:
+        current_user.description=user_data.description
+    if user_data.dob:
+        current_user.dob=user_data.dob
+    if user_data.gender:
+        current_user.gender=user_data.gender
+    if user_data.phone_code:
+        current_user.phone_code=user_data.phone_code
+    if user_data.phone:
+        current_user.phone=user_data.phone
+    
     await db.commit()
     await db.refresh(current_user)
     return current_user
