@@ -10,7 +10,7 @@ from sqlalchemy import select, func,delete as sql_delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
-from models import User,PasswordResetToken,ValidateEmailToken
+from models import User,PasswordResetToken,ValidateEmailToken,DoctorClient
 from database import get_db
 
 from schemas import (
@@ -65,15 +65,46 @@ async def register(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="this user already exist"
             )
-    # create new user
+    
+   
+ 
+    # checkes needed if user is client
+    if user.role =='CLIENT':
+        if not user.doctor_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="doctor_id is required for clients"
+            )
+        # check if doctor exists
+        doctor_q=await db.execute(select(User).where(User.id==user.doctor_id,User.role=='doctor'))
+        doctor=doctor_q.scalars().first()
+        if not doctor:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="doctor_id is invalid"
+            )
+        
+         # create new user
     new_user =User(
         username=user.username.strip().lower(),
         email=user.email.strip().lower(),
-        password_hash=hash_password(user.password)
+        password_hash=hash_password(user.password),
+        role=user.role
         )
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user)
+
+    if user.role == 'CLIENT':
+        # add new client to doctor list if user is client
+        add_new_patient_to_doctor=DoctorClient(
+            doctor_id=user.doctor_id,
+            client_id=new_user.id
+            )
+        db.add(add_new_patient_to_doctor)
+        await db.commit()
+
+
 
     # send email validation link
     token = genetate_secret_token()
@@ -130,50 +161,52 @@ async def validate_email(
     return{
         'message': 'Email validated successfully. you can log in with your email.'
     }
+
 # login via google
-@router.get("/login/google")
-async def login_via_google(request: Request):
-    """Initiate the Google OAuth2 login flow."""
-    redirect_uri = request.url_for('auth_callback')
-    print(f"Generated Redirect URI for Google: {redirect_uri}") 
-    return await oauth.google.authorize_redirect(request, redirect_uri)
-@router.get("/google/callback", name="auth_callback",response_model=Token)
-async def auth_callback(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
-    """Callback endpoint that Google redirects to after authentication."""
-    try:
-        token = await oauth.google.authorize_access_token(request)
-    except OAuthError as error:
-        return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"OAuth error: {error.error}")
+# @router.get("/login/google")
+# async def login_via_google(request: Request):
+#     """Initiate the Google OAuth2 login flow."""
+#     redirect_uri = request.url_for('auth_callback')
+#     # print(f"Generated Redirect URI for Google: {redirect_uri}") 
+#     return await oauth.google.authorize_redirect(request, redirect_uri)
+# @router.get("/google/callback", name="auth_callback",response_model=Token)
+# async def auth_callback(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+#     """Callback endpoint that Google redirects to after authentication."""
+#     try:
+#         token = await oauth.google.authorize_access_token(request)
+#     except OAuthError as error:
+#         return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"OAuth error: {error.error}")
     
-    user_info = token.get('userinfo')
+#     user_info = token.get('userinfo')
 
-    if not user_info:
-        return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User info not found in token")
+#     if not user_info:
+#         return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User info not found in token")
     
-    username = user_info.get('name')
-    email = user_info.get('email')
-    user_img= user_info.get('picture')
+#     username = user_info.get('name')
+#     email = user_info.get('email')
+#     user_img= user_info.get('picture')
     
-    if not email:
-        return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email not found in user info")
+#     if not email:
+#         return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email not found in user info")
 
-    user_q = await db.execute(select(User).where(User.email == email))
-    user=user_q.scalars().first()
-    if not user:
-        user = User(email=email, username=username, password_hash=None,validated=True)
-        if user_img:
-            user.user_profile_img=user_img
+#     user_q = await db.execute(select(User).where(User.email == email))
+#     user=user_q.scalars().first()
+#     if not user:
+#         user = User(email=email, username=username, password_hash=None,validated=True)
+#         if user_img:
+#             user.user_profile_img=user_img
 
 
-    db.add(user)
-    await db.commit()
-    await db.refresh(user)
+#     db.add(user)
+#     await db.commit()
+#     await db.refresh(user)
     
-    access_token = create_access_token(data={'user_id': str(user.id)})
-    return {"access_token": access_token, "token_type": "bearer"}
+#     access_token = create_access_token(data={'user_id': str(user.id)})
+#     return {"access_token": access_token, "token_type": "bearer"}
+
 # login API
 @router.post(
-        '/token',
+        '/login',
         response_model=Token,
         status_code=status.HTTP_200_OK
         )

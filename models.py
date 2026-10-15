@@ -1,59 +1,32 @@
 from database import Base
 from uuid import UUID
 
-from datetime import UTC, datetime, date as PyDate, time as PyTime, timezone
-import enum
+from datetime import datetime, date as PyDate, time as PyTime, timezone
 
-from sqlalchemy import DATE, DateTime, Time, ForeignKey, String, Text, Boolean, Numeric, Integer, UniqueConstraint,Enum as SQLEnum
+from sqlalchemy import DATE, DateTime, Time, ForeignKey, String, Text, Boolean, Numeric, Integer, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 def utcnow() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
-# =========================={Enums}============================
-class Gender(enum.Enum):
-    MALE = "male"
-    FEMALE = "female"
-
-class UserRole(enum.Enum):
-    PATIENT = "patient"
-    ASSESTANT = "assestant"
-    DOCTOR = "doctor"
-    ADMIN = "admin"
-
-class AppointmentStatus(enum.Enum):
-    CONFIRMED = "confirmed"
-    WAITING = "waiting"
-    COMPLETED = "completed"
-    CANCELLED = "cancelled"
-
-class MessageStatus(enum.Enum):
-    SENT = "sent"
-    DELIVERED = "delivered"
-    READ = "read"
-
-class MedicalFileType(enum.Enum):
-    LAB = "lab"
-    IMAGING = "imaging"
-    REPORT = "report"
 # =========================={User Table}============================
 # User Table
 class User(Base):
     __tablename__ = "users"
     username:Mapped[str]=mapped_column(unique=True,nullable=False)
     email:Mapped[str]=mapped_column(unique=True,nullable=False)
-    phone_code: Mapped[str] = mapped_column(String(8), default="+20")
-    phone: Mapped[str] = mapped_column(String(20), default="")
+    role:Mapped[str]=mapped_column(String(20),nullable=False) 
+    phone_code: Mapped[str|None] = mapped_column(String(8), default="+20",nullable=True)
+    phone: Mapped[str|None] = mapped_column(String(20), default="",nullable=True)
     dob: Mapped[PyDate | None] = mapped_column(DATE, nullable=True)
-    city: Mapped[str] = mapped_column(String(80), default="")
-    gender: Mapped[Gender | None] = mapped_column(SQLEnum(Gender), nullable=True)
-    description: Mapped[str] = mapped_column(Text, default="")
+    city: Mapped[str|None] = mapped_column(String(40), default="", nullable=True)
+    gender: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    description: Mapped[str|None] = mapped_column(Text, default="", nullable=True)
 
     user_profile_img:Mapped[str|None]=mapped_column(nullable=True,default=None)
     
     password_hash:Mapped[str|None]=mapped_column(String(200),nullable=True)
     validated:Mapped[bool]=mapped_column(default=False)
     
-    role:Mapped[UserRole]=mapped_column(SQLEnum(UserRole),default=UserRole.PATIENT)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     updated_at:Mapped[datetime]=mapped_column(DateTime, default=utcnow,onupdate=utcnow)
@@ -73,16 +46,13 @@ class User(Base):
             return f'/media/profile_pics/{self.user_profile_img}'
         return '/static/profile_pics/default.jpg'
 
-class DoctorPatient(Base):
-    __tablename__ = "doctors_users"
+class DoctorClient(Base):
+    __tablename__ = "doctors_clients"
 
     doctor_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False, index=True, primary_key=True)
-    patient_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False, index=True, primary_key=True)
+    client_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False, index=True, primary_key=True)
     
     created_at: Mapped[datetime] = mapped_column(DateTime,default=utcnow)
-
-    doctor: Mapped["User"] = relationship()
-    patient: Mapped["User"] = relationship()
 # ======================{Temp Tokens Tables}=================================================
 class PasswordResetToken(Base):
     __tablename__ = "password_reset_tokens"
@@ -116,26 +86,25 @@ class Appointment(Base):
     __tablename__ = "appointments"
 
     doctor_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    patient_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    client_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     type_id: Mapped[UUID | None] = mapped_column(ForeignKey("booking_types.id", ondelete="SET NULL"), nullable=True)
     date: Mapped[PyDate] = mapped_column(DATE, index=True)
     time: Mapped[PyTime] = mapped_column(Time)
-    status: Mapped[AppointmentStatus] = mapped_column(SQLEnum(AppointmentStatus), default= AppointmentStatus.WAITING)  # confirmed | waiting | completed | cancelled
+    status: Mapped[str] = mapped_column(String(20), default="waiting")  # confirmed | waiting | completed | cancelled
     notes: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
-    patient: Mapped[User] = relationship()
     type: Mapped[BookingType | None] = relationship()
 
 # ====================={Conversation Table}=================================================
 class Conversation(Base):
     __tablename__ = "conversations"
-    __table_args__ = (UniqueConstraint("doctor_id", "patient_id", name="uq_conversation"),)
+    __table_args__ = (UniqueConstraint("doctor_id", "client_id", name="uq_conversation"),)
 
     doctor_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    patient_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    client_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     unread: Mapped[int] = mapped_column(Integer, default=0)          # unread by the doctor
-    patient_unread: Mapped[int] = mapped_column(Integer, default=0)  # unread by the patient
+    client_unread: Mapped[int] = mapped_column(Integer, default=0)  # unread by the client
 
     messages: Mapped[list["Message"]] = relationship(back_populates="conversation", cascade="all, delete-orphan",
                                                      order_by="Message.id")
@@ -145,7 +114,7 @@ class Message(Base):
     __tablename__ = "messages"
 
     conversation_id: Mapped[UUID] = mapped_column(ForeignKey("conversations.id", ondelete="CASCADE"), index=True)
-    sender: Mapped[MessageStatus] = mapped_column(SQLEnum(MessageStatus), default=MessageStatus.SENT)  # patient | doctor
+    sender: Mapped[str] = mapped_column(String(10), default='sent')  # client | doctor
     text: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
@@ -156,13 +125,12 @@ class MedicalFile(Base):
     __tablename__ = "medical_files"
 
     doctor_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    patient_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    client_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     filename: Mapped[str] = mapped_column(String(255))
     stored_name: Mapped[str] = mapped_column(String(255))
-    kind: Mapped[MedicalFileType] = mapped_column(SQLEnum(MedicalFileType),nullable=False)  # lab | imaging | report
-    uploaded_by: Mapped[str] = mapped_column(String(10), default="doctor")  # doctor | patient
+    kind: Mapped[str] = mapped_column(String(10),nullable=False)  # lab | imaging | report
+    uploaded_by: Mapped[str] = mapped_column(String(10), default="doctor")  # doctor | client
     size_bytes: Mapped[int] = mapped_column(Integer, default=0)
     is_new: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
-    patient: Mapped[User] = relationship()

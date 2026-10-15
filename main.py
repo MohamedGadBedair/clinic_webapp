@@ -56,7 +56,6 @@ async def health_chick(db:Annotated[AsyncSession,Depends(get_db)]):
             detail='database unavailable'
         )from exc
     return{'status':'healthy'}
-
 # {Template Route}
 @app.get("/reset-password", include_in_schema=False)
 async def reset_password_page(request: Request):

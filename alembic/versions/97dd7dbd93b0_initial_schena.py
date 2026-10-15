@@ -1,8 +1,8 @@
 """initial schena
 
-Revision ID: 400385b2cbcb
+Revision ID: 97dd7dbd93b0
 Revises: 
-Create Date: 2026-10-14 23:48:42.807116
+Create Date: 2026-10-15 04:41:55.827228
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '400385b2cbcb'
+revision: str = '97dd7dbd93b0'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -24,16 +24,16 @@ def upgrade() -> None:
     op.create_table('users',
     sa.Column('username', sa.String(), nullable=False),
     sa.Column('email', sa.String(), nullable=False),
-    sa.Column('phone_code', sa.String(length=8), nullable=False),
-    sa.Column('phone', sa.String(length=20), nullable=False),
+    sa.Column('role', sa.String(length=20), nullable=False),
+    sa.Column('phone_code', sa.String(length=8), nullable=True),
+    sa.Column('phone', sa.String(length=20), nullable=True),
     sa.Column('dob', sa.DATE(), nullable=True),
-    sa.Column('city', sa.String(length=80), nullable=False),
-    sa.Column('gender', sa.Enum('MALE', 'FEMALE', name='gender'), nullable=True),
-    sa.Column('description', sa.Text(), nullable=False),
+    sa.Column('city', sa.String(length=40), nullable=True),
+    sa.Column('gender', sa.String(length=10), nullable=True),
+    sa.Column('description', sa.Text(), nullable=True),
     sa.Column('user_profile_img', sa.String(), nullable=True),
     sa.Column('password_hash', sa.String(length=200), nullable=True),
     sa.Column('validated', sa.Boolean(), nullable=False),
-    sa.Column('role', sa.Enum('PATIENT', 'ASSESTANT', 'DOCTOR', 'ADMIN', name='userrole'), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.Column('id', sa.Uuid(), nullable=False),
@@ -57,47 +57,47 @@ def upgrade() -> None:
     op.create_index(op.f('ix_booking_types_id'), 'booking_types', ['id'], unique=False)
     op.create_table('conversations',
     sa.Column('doctor_id', sa.Uuid(), nullable=False),
-    sa.Column('patient_id', sa.Uuid(), nullable=False),
+    sa.Column('client_id', sa.Uuid(), nullable=False),
     sa.Column('unread', sa.Integer(), nullable=False),
-    sa.Column('patient_unread', sa.Integer(), nullable=False),
+    sa.Column('client_unread', sa.Integer(), nullable=False),
     sa.Column('id', sa.Uuid(), nullable=False),
+    sa.ForeignKeyConstraint(['client_id'], ['users.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['doctor_id'], ['users.id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['patient_id'], ['users.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('doctor_id', 'patient_id', name='uq_conversation')
+    sa.UniqueConstraint('doctor_id', 'client_id', name='uq_conversation')
     )
     op.create_index(op.f('ix_conversations_doctor_id'), 'conversations', ['doctor_id'], unique=False)
     op.create_index(op.f('ix_conversations_id'), 'conversations', ['id'], unique=False)
-    op.create_table('doctors_users',
+    op.create_table('doctors_clients',
     sa.Column('doctor_id', sa.Uuid(), nullable=False),
-    sa.Column('patient_id', sa.Uuid(), nullable=False),
+    sa.Column('client_id', sa.Uuid(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('id', sa.Uuid(), nullable=False),
+    sa.ForeignKeyConstraint(['client_id'], ['users.id'], ),
     sa.ForeignKeyConstraint(['doctor_id'], ['users.id'], ),
-    sa.ForeignKeyConstraint(['patient_id'], ['users.id'], ),
-    sa.PrimaryKeyConstraint('doctor_id', 'patient_id', 'id')
+    sa.PrimaryKeyConstraint('doctor_id', 'client_id', 'id')
     )
-    op.create_index(op.f('ix_doctors_users_doctor_id'), 'doctors_users', ['doctor_id'], unique=False)
-    op.create_index(op.f('ix_doctors_users_id'), 'doctors_users', ['id'], unique=False)
-    op.create_index(op.f('ix_doctors_users_patient_id'), 'doctors_users', ['patient_id'], unique=False)
+    op.create_index(op.f('ix_doctors_clients_client_id'), 'doctors_clients', ['client_id'], unique=False)
+    op.create_index(op.f('ix_doctors_clients_doctor_id'), 'doctors_clients', ['doctor_id'], unique=False)
+    op.create_index(op.f('ix_doctors_clients_id'), 'doctors_clients', ['id'], unique=False)
     op.create_table('medical_files',
     sa.Column('doctor_id', sa.Uuid(), nullable=False),
-    sa.Column('patient_id', sa.Uuid(), nullable=False),
+    sa.Column('client_id', sa.Uuid(), nullable=False),
     sa.Column('filename', sa.String(length=255), nullable=False),
     sa.Column('stored_name', sa.String(length=255), nullable=False),
-    sa.Column('kind', sa.Enum('LAB', 'IMAGING', 'REPORT', name='medicalfiletype'), nullable=False),
+    sa.Column('kind', sa.String(length=10), nullable=False),
     sa.Column('uploaded_by', sa.String(length=10), nullable=False),
     sa.Column('size_bytes', sa.Integer(), nullable=False),
     sa.Column('is_new', sa.Boolean(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('id', sa.Uuid(), nullable=False),
+    sa.ForeignKeyConstraint(['client_id'], ['users.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['doctor_id'], ['users.id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['patient_id'], ['users.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_index(op.f('ix_medical_files_client_id'), 'medical_files', ['client_id'], unique=False)
     op.create_index(op.f('ix_medical_files_doctor_id'), 'medical_files', ['doctor_id'], unique=False)
     op.create_index(op.f('ix_medical_files_id'), 'medical_files', ['id'], unique=False)
-    op.create_index(op.f('ix_medical_files_patient_id'), 'medical_files', ['patient_id'], unique=False)
     op.create_table('password_reset_tokens',
     sa.Column('user_id', sa.Uuid(), nullable=False),
     sa.Column('token_hash', sa.String(length=64), nullable=False),
@@ -122,26 +122,26 @@ def upgrade() -> None:
     op.create_index(op.f('ix_validate_email_token_id'), 'validate_email_token', ['id'], unique=False)
     op.create_table('appointments',
     sa.Column('doctor_id', sa.Uuid(), nullable=False),
-    sa.Column('patient_id', sa.Uuid(), nullable=False),
+    sa.Column('client_id', sa.Uuid(), nullable=False),
     sa.Column('type_id', sa.Uuid(), nullable=True),
     sa.Column('date', sa.DATE(), nullable=False),
     sa.Column('time', sa.Time(), nullable=False),
-    sa.Column('status', sa.Enum('CONFIRMED', 'WAITING', 'COMPLETED', 'CANCELLED', name='appointmentstatus'), nullable=False),
+    sa.Column('status', sa.String(length=20), nullable=False),
     sa.Column('notes', sa.Text(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('id', sa.Uuid(), nullable=False),
+    sa.ForeignKeyConstraint(['client_id'], ['users.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['doctor_id'], ['users.id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['patient_id'], ['users.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['type_id'], ['booking_types.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_index(op.f('ix_appointments_client_id'), 'appointments', ['client_id'], unique=False)
     op.create_index(op.f('ix_appointments_date'), 'appointments', ['date'], unique=False)
     op.create_index(op.f('ix_appointments_doctor_id'), 'appointments', ['doctor_id'], unique=False)
     op.create_index(op.f('ix_appointments_id'), 'appointments', ['id'], unique=False)
-    op.create_index(op.f('ix_appointments_patient_id'), 'appointments', ['patient_id'], unique=False)
     op.create_table('messages',
     sa.Column('conversation_id', sa.Uuid(), nullable=False),
-    sa.Column('sender', sa.Enum('SENT', 'DELIVERED', 'READ', name='messagestatus'), nullable=False),
+    sa.Column('sender', sa.String(length=10), nullable=False),
     sa.Column('text', sa.Text(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('id', sa.Uuid(), nullable=False),
@@ -159,23 +159,23 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_messages_id'), table_name='messages')
     op.drop_index(op.f('ix_messages_conversation_id'), table_name='messages')
     op.drop_table('messages')
-    op.drop_index(op.f('ix_appointments_patient_id'), table_name='appointments')
     op.drop_index(op.f('ix_appointments_id'), table_name='appointments')
     op.drop_index(op.f('ix_appointments_doctor_id'), table_name='appointments')
     op.drop_index(op.f('ix_appointments_date'), table_name='appointments')
+    op.drop_index(op.f('ix_appointments_client_id'), table_name='appointments')
     op.drop_table('appointments')
     op.drop_index(op.f('ix_validate_email_token_id'), table_name='validate_email_token')
     op.drop_table('validate_email_token')
     op.drop_index(op.f('ix_password_reset_tokens_id'), table_name='password_reset_tokens')
     op.drop_table('password_reset_tokens')
-    op.drop_index(op.f('ix_medical_files_patient_id'), table_name='medical_files')
     op.drop_index(op.f('ix_medical_files_id'), table_name='medical_files')
     op.drop_index(op.f('ix_medical_files_doctor_id'), table_name='medical_files')
+    op.drop_index(op.f('ix_medical_files_client_id'), table_name='medical_files')
     op.drop_table('medical_files')
-    op.drop_index(op.f('ix_doctors_users_patient_id'), table_name='doctors_users')
-    op.drop_index(op.f('ix_doctors_users_id'), table_name='doctors_users')
-    op.drop_index(op.f('ix_doctors_users_doctor_id'), table_name='doctors_users')
-    op.drop_table('doctors_users')
+    op.drop_index(op.f('ix_doctors_clients_id'), table_name='doctors_clients')
+    op.drop_index(op.f('ix_doctors_clients_doctor_id'), table_name='doctors_clients')
+    op.drop_index(op.f('ix_doctors_clients_client_id'), table_name='doctors_clients')
+    op.drop_table('doctors_clients')
     op.drop_index(op.f('ix_conversations_id'), table_name='conversations')
     op.drop_index(op.f('ix_conversations_doctor_id'), table_name='conversations')
     op.drop_table('conversations')
