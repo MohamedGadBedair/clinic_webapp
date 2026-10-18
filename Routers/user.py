@@ -1,11 +1,9 @@
-
-
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, UploadFile
+from fastapi import APIRouter, HTTPException, status, Depends, UploadFile
 
 
-from sqlalchemy import select, func,delete as sql_delete
+from sqlalchemy import select, func
 from sqlalchemy.orm import load_only
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,7 +15,7 @@ from database import get_db
 
 from schemas import (
     UserUpdate,
-    UserPablic,
+    UserDelete,
     UserPrivate,
     ChangePasswordRequest,
     UserPrivate,
@@ -63,7 +61,16 @@ async def get_current_user(current_user:CurrentUser):
         "/",
         status_code=status.HTTP_204_NO_CONTENT
         )
-async def delet_user(db:Annotated[AsyncSession,Depends(get_db)],current_user:CurrentUser):
+async def delet_user(data:UserDelete,db:Annotated[AsyncSession,Depends(get_db)],current_user:CurrentUser):
+    
+    # confirm deletion
+    if data.confirm != 'DELETE_MY_ACCOUNT':
+        raise HTTPException(status.HTTP_400_BAD_REQUEST,"plase enter 'DELETE_MY_ACCOUNT' to delete your account")
+    
+    # confirm password
+    if hash_password(data.password) != current_user.password_hash:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST,"invalid password")
+    
     old_filename =current_user.user_profile_img
     await db.delete(current_user)
     await db.commit()
@@ -117,7 +124,7 @@ async def update_user(user_data:UserUpdate,db:Annotated[AsyncSession,Depends(get
     await db.commit()
     await db.refresh(current_user)
     return current_user
-@router.patch('/me/password',status_code=status.HTTP_200_OK)
+@router.post('/me/password',status_code=status.HTTP_200_OK)
 async def change_password(current_user:CurrentUser,request_data:ChangePasswordRequest,db:Annotated[AsyncSession,Depends(get_db)]):
     
     if not verify_password(request_data.current_password,current_user.password_hash):
@@ -133,7 +140,7 @@ async def change_password(current_user:CurrentUser,request_data:ChangePasswordRe
 
 # ================================{Profile Picture APIS}=================================
 # # upload profile picture
-@router.patch(
+@router.post(
         '/picture',
         response_model=UserPrivate,
         status_code=status.HTTP_202_ACCEPTED

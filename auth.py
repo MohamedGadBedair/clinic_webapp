@@ -8,7 +8,7 @@ from sqlalchemy import select
 from fastapi import HTTPException, Depends,status
 from fastapi.security import OAuth2PasswordBearer
 
-from models import User
+from models import User,BlockedEmail
 from database import get_db
 
 import jwt
@@ -82,8 +82,14 @@ async def get_current_user(
             )
     return current_user
 
-CurrentUser=Annotated[User,Depends(get_current_user)]
+CurrentUser = Annotated[User,Depends(get_current_user)]
 
+async def current_doctor(current_user:CurrentUser):
+    if current_user.role != "DOCTOR":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only doctors can access this route.")
+    return current_user
+
+CurrentDoctor=Annotated[User,Depends(current_doctor)]
 # ======================{Reset Password Functions}=================================================
 def genetate_secret_token()->str:
     return secrets.token_urlsafe(32)

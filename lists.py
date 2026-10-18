@@ -23,9 +23,9 @@ class MessageStatus(enum.Enum):
     READ = "read"
 
 class MedicalFileType(enum.Enum):
-    LAB = "lab"
-    IMAGING = "imaging"
-    REPORT = "report"
+    LABORATORY = "lab"
+    IMAG = "img"
+    REPORT = "rep"
 
 class City(enum.Enum):
   None
