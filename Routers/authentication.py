@@ -2,9 +2,7 @@ from typing import Annotated
 from datetime import timedelta ,UTC, datetime
 
 from fastapi.security import OAuth2PasswordRequestForm
-from fastapi import Request,APIRouter, HTTPException, status, Depends, BackgroundTasks
-
-from authlib.integrations.starlette_client import OAuthError
+from fastapi import APIRouter, HTTPException, status, Depends, BackgroundTasks
 
 from sqlalchemy import select, func,delete as sql_delete
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,8 +28,7 @@ from auth import(
 
 from services.email_utils import(
      send_password_reset_email,
-     send_email_validation_email,
-     oauth,
+     send_email_handler,
 )
 
 router = APIRouter()
@@ -84,7 +81,7 @@ async def register(
                 detail="doctor_id is invalid"
             )
         
-         # create new user
+    # create new user
     new_user =User(
         username=user.username.strip().lower(),
         email=user.email.strip().lower(),
@@ -94,34 +91,22 @@ async def register(
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user)
+    
+    # add new client to doctor list if user is client
     if user.role.value == 'client':
-        # add new client to doctor list if user is client
         add_new_patient_to_doctor=DoctorClient(
             doctor_id=user.doctor_id,
             client_id=new_user.id
             )
         db.add(add_new_patient_to_doctor)
         await db.commit()
-
-    # send email validation link
-    token = genetate_secret_token()
-    token_hash=hashed_secret_token(token)
-    expires_at=datetime.now(UTC)+timedelta(minutes=settings.reset_token_expire_minutes)
-
-    reset_token=ValidateEmailToken(
-        user_id=new_user.id,
-        token_hash=token_hash,
-        expires_at=expires_at
-        )
     
-    db.add(reset_token)
-    await db.commit()
-
+    # send validation email 
     background_task.add_task( 
-        send_email_validation_email,
-        to_email=new_user.email,
-        username=new_user.username,
-        token=token
+        send_email_handler,
+        task='validate_email',
+        user=new_user,
+        db=db        
         )
 
     return{
@@ -250,29 +235,18 @@ async def forgot_password(
     if user:
         await db.execute(sql_delete(PasswordResetToken).where(PasswordResetToken.user_id==user.id))
 
-    token = genetate_secret_token()
-    token_hash=hashed_secret_token(token)
-    expires_at=datetime.now(UTC)+timedelta(minutes=settings.reset_token_expire_minutes)
-
-    reset_token=PasswordResetToken(
-        user_id=user.id,
-        token_hash=token_hash,
-        expires_at=expires_at
-        )
-    
-    db.add(reset_token)
-    await db.commit()
-
+    # send reset password email
     background_task.add_task( 
-        send_password_reset_email,
-        to_email=user.email,
-        username=user.username,
-        token=token
+        send_email_handler,
+        task='reset_password',
+        user=user,
+        db=db
         )
 
     return{
         'message':'if an account exists with this email, you will recive password reset instructions.'
     }
+
 @router.post('/reset_password',status_code=status.HTTP_200_OK)
 async def reset_password(
     request_data:ResetPasswordRequest,

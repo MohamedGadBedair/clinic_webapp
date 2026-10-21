@@ -1,8 +1,8 @@
 """initial schena
 
-Revision ID: 56f285b75349
+Revision ID: 584044ec76cc
 Revises: 
-Create Date: 2026-10-20 14:56:15.160365
+Create Date: 2026-10-21 15:54:44.601871
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '56f285b75349'
+revision: str = '584044ec76cc'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -31,6 +31,7 @@ def upgrade() -> None:
     sa.Column('city', sa.String(length=40), nullable=True),
     sa.Column('gender', sa.String(length=10), nullable=True),
     sa.Column('description', sa.Text(), nullable=True),
+    sa.Column('is_online', sa.Boolean(), server_default='true', nullable=False),
     sa.Column('user_profile_img', sa.String(), nullable=True),
     sa.Column('password_hash', sa.String(length=200), nullable=True),
     sa.Column('validated', sa.Boolean(), nullable=False),
@@ -122,6 +123,16 @@ def upgrade() -> None:
     sa.UniqueConstraint('token_hash')
     )
     op.create_index(op.f('ix_password_reset_tokens_id'), 'password_reset_tokens', ['id'], unique=False)
+    op.create_table('unsent_emails',
+    sa.Column('user_id', sa.Uuid(), nullable=False),
+    sa.Column('task', sa.String(length=20), nullable=False),
+    sa.Column('data', sa.JSON(), nullable=True),
+    sa.Column('id', sa.Uuid(), nullable=False),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_unsent_emails_id'), 'unsent_emails', ['id'], unique=False)
+    op.create_index(op.f('ix_unsent_emails_user_id'), 'unsent_emails', ['user_id'], unique=False)
     op.create_table('validate_email_token',
     sa.Column('user_id', sa.Uuid(), nullable=False),
     sa.Column('token_hash', sa.String(length=64), nullable=False),
@@ -181,6 +192,9 @@ def downgrade() -> None:
     op.drop_table('appointments')
     op.drop_index(op.f('ix_validate_email_token_id'), table_name='validate_email_token')
     op.drop_table('validate_email_token')
+    op.drop_index(op.f('ix_unsent_emails_user_id'), table_name='unsent_emails')
+    op.drop_index(op.f('ix_unsent_emails_id'), table_name='unsent_emails')
+    op.drop_table('unsent_emails')
     op.drop_index(op.f('ix_password_reset_tokens_id'), table_name='password_reset_tokens')
     op.drop_table('password_reset_tokens')
     op.drop_index(op.f('ix_medical_files_id'), table_name='medical_files')

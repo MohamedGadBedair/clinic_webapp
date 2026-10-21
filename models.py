@@ -3,7 +3,7 @@ from uuid import UUID
 
 from datetime import datetime, date as PyDate, time as PyTime, timezone
 
-from sqlalchemy import DATE, DateTime, Time, ForeignKey, String, Text, Boolean, Numeric, Integer, UniqueConstraint
+from sqlalchemy import DATE, DateTime, Time, ForeignKey, String, Text, Boolean, Numeric, Integer, UniqueConstraint, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 def utcnow() -> datetime:
@@ -141,6 +141,14 @@ class MedicalFile(Base):
     @property
     def file_path(self):
         return f'/uploads/{self.filename}'
+# # ==================={unsentedmail Table}=================================================
+class UnsentEmail(Base):
+    __tablename__ = "unsent_emails"
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    task: Mapped[str] = mapped_column(String(20), nullable=False)  
+    data: Mapped[dict] = mapped_column(JSON, nullable=True)
+    
+    user: Mapped[User] = relationship(lazy="selectin", primaryjoin="User.id==UnsentEmail.user_id", viewonly=True)    
 # # ==================={Payment Table}=================================================
 # class Payment(Base):
 #     __tablename__ = "payments"

@@ -1,13 +1,16 @@
 from authlib.integrations.starlette_client import OAuth
-from config import settings
-
+from datetime import datetime, timedelta,UTC
 from email.message import EmailMessage
-
+from typing import Annotated
 import aiosmtplib
+from fastapi import Depends
 from fastapi.templating import Jinja2Templates
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
-
+from database import get_db
+from models import User, UnsentEmail, ValidateEmailToken, PasswordResetToken
+from auth import genetate_secret_token,hashed_secret_token
 templates = Jinja2Templates(directory="templates")
 
 # ====================={GOOGLE OAUTH2 CONFIGURATION}=======================
@@ -103,4 +106,54 @@ async def send_email_validation_email(to_email: str, username: str, token: str) 
         plain_text=plain_text,
         html_content=html_content,
     )
+# ======================{EMAIL SENDING HANDLER FUNCTION}==========================
+async def send_email_handler(task:str,user: User, db: Annotated[AsyncSession,Depends(get_db)]):
+    # generate secret token
+    token = genetate_secret_token()
+    token_hash=hashed_secret_token(token)
+    expires_at=datetime.now(UTC)+timedelta(minutes=settings.reset_token_expire_minutes)
+    data=None
 
+    try:
+        if task == 'validate_email':
+            # add token to database in validate_email table
+            validate_token=ValidateEmailToken(
+                user_id=user.id,
+                token_hash=token_hash,
+                expires_at=expires_at
+                )
+            db.add(validate_token)
+            await db.commit()
+            
+            # send email with token to user email
+            await send_email_validation_email(
+                to_email=user.email,
+                username=user.username,
+                token=token
+                )
+
+        elif task == 'reset_password':
+            # add token to database in password_reset table
+            reset_token=PasswordResetToken(
+                user_id=user.id,
+                token_hash=token_hash,
+                expires_at=expires_at
+                )
+            db.add(reset_token)
+            await db.commit()
+            
+            # send email with token to user email
+            await send_password_reset_email(
+                to_email=user.email,
+                username=user.username,
+                token=token
+                )
+        else:
+            raise print('invalid task')
+
+    except Exception as e:
+        unsent_mail=UnsentEmail(user_id=user.id,task=task,data=data)
+        db.add(unsent_mail)
+        await db.commit()
+        print(e)
+        
