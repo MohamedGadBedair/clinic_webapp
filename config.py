@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     # token secrets
     secret_key:SecretStr
     algorithm:str='HS256'
-    access_token_expire_minutes:int=30
+    access_token_expire_minutes:int=720
     
     # ather needed
     max_upload_size_bytes:int =5*1024*1024

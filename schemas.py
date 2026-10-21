@@ -44,7 +44,7 @@ class UserPablic(BaseModel):
     user_profile_img: str|None
     image_path: str
     dob: date|None = None
-
+    is_online: bool
     model_config = ConfigDict(from_attributes=True)
 class UserPrivate(UserPablic): 
     email:EmailStr
@@ -114,7 +114,6 @@ class AppointmentUpdate(AppointmentBase):
     status:AppointmentStatus|None=None 
 class AppointmentPablic(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-
 
     id:UUID
     date:date

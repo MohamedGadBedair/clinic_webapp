@@ -63,6 +63,7 @@ async def get_current_user(
         token:Annotated[str,Depends(oath2_scheme)],
         db:Annotated[AsyncSession,Depends(get_db)]
         ):
+    
     # get user_id form token
     user_id =verify_access_token(token)
     if not user_id:

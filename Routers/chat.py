@@ -1,38 +1,57 @@
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query,Depends, WebSocketException
 import json
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, status, Query, APIRouter
-from  websocket_manager import manager
+from uuid import UUID
 
-from auth import CurrentUser
-
+from websocket_manager import manager
+from auth import get_current_user
+from database import get_db
+from services.query_utils import get_user_conection_list,get_user_conversation
 router = APIRouter()
 
 @router.websocket("/ws")
 async def websocket_chat_endpoint(
     websocket: WebSocket,
-    user:CurrentUser
+    token: str = Query(...),
+    db: AsyncSession = Depends(get_db)  # <-- Let FastAPI inject the database session properly
     ):
-    websocket.send_json({"message":"hello"})
-    # 1. تسجيل دخول المستخدم الحالي وتثبيته أنه "متصل"
-    await manager.connect(user.id, websocket)
+    
+    current_user=await get_current_user(token, db)
+    await manager.connect(websocket,current_user,db)
+
+    user_list=await get_user_conection_list(current_user,db)
+
+    await websocket.send_json({"message":"hello"})
     
     try:
         while True:
-            # 2. استقبال الرسائل القادمة من هذا المستخدم
             raw_data = await websocket.receive_text()
-            data = json.loads(raw_data)
             
-            recipient_id = data.get("recipient_id")
+            try:
+                data = json.loads(raw_data)
+            except json.JSONDecodeError:
+                await websocket.send_json({"error": "Invalid JSON format"})
+                continue  
+            
+            recipient_id = UUID(data.get("recipient_id"))
             content = data.get("content")
-            
+
             if recipient_id and content:
-                # 3. توجيه الرسالة عبر المدير للطرف الثاني
-                await manager.send_direct_message(
-                    sender_id=user.id, 
-                    recipient_id=recipient_id, 
-                    content=content
-                )
+                if recipient_id not in user_list:
+                    raise WebSocketException(code=400, reason="Invalid recipient_id")
                 
+                conversation = await get_user_conversation(current_user,recipient_id,db)
+                        
+                
+                await manager.send_direct_message(
+                    conversation_id=conversation.id,
+                    sender_id=current_user.id,
+                    sender_role=current_user.role,
+                    recipient_id=recipient_id,
+                    content=content,
+                    db=db
+                )
+
     except WebSocketDisconnect:
-        # 4. عند قطع الاتصال، يتم مسحه من القاموس النشط فقط
-        # وبذلك أي رسالة قادمة له لاحقاً ستذهب تلقائياً لقاعدة البيانات
-        manager.disconnect(user.id)
+        await manager.disconnect(current_user,db)

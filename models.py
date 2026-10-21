@@ -21,7 +21,7 @@ class User(Base):
     city: Mapped[str|None] = mapped_column(String(40), default="", nullable=True)
     gender: Mapped[str | None] = mapped_column(String(10), nullable=True)
     description: Mapped[str|None] = mapped_column(Text, default="", nullable=True)
-
+    is_online: Mapped[bool] = mapped_column(Boolean, default=True,server_default="true")
     user_profile_img:Mapped[str|None]=mapped_column(nullable=True,default=None)
     
     password_hash:Mapped[str|None]=mapped_column(String(200),nullable=True)
@@ -112,7 +112,7 @@ class Conversation(Base):
 
     doctor_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     client_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
-    unread: Mapped[int] = mapped_column(Integer, default=0)          # unread by the doctor
+    doctor_unread: Mapped[int] = mapped_column(Integer, default=0)          # unread by the doctor
     client_unread: Mapped[int] = mapped_column(Integer, default=0)  # unread by the client
 
     messages: Mapped[list["Message"]] = relationship(back_populates="conversation", cascade="all, delete-orphan",
@@ -122,11 +122,11 @@ class Message(Base):
     __tablename__ = "messages"
 
     conversation_id: Mapped[UUID] = mapped_column(ForeignKey("conversations.id", ondelete="CASCADE"), index=True)
-    sender: Mapped[str] = mapped_column(String(10), default='sent')  # client | doctor
+    sender_id: Mapped[UUID] = mapped_column(index=True)  
     text: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
-    conversation: Mapped[Conversation] = relationship(back_populates="messages")
+    conversation: Mapped[Conversation] = relationship(back_populates="messages",lazy="selectin")
 # ===================={Medical Files Table}=================================================
 class MedicalFile(Base):
     __tablename__ = "medical_files"

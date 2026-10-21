@@ -1,8 +1,8 @@
 """initial schena
 
-Revision ID: 97dd7dbd93b0
+Revision ID: 56f285b75349
 Revises: 
-Create Date: 2026-10-15 04:41:55.827228
+Create Date: 2026-10-20 14:56:15.160365
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '97dd7dbd93b0'
+revision: str = '56f285b75349'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -38,16 +38,32 @@ def upgrade() -> None:
     sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('email'),
     sa.UniqueConstraint('username')
     )
+    op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
     op.create_index(op.f('ix_users_id'), 'users', ['id'], unique=False)
+    op.create_table('blocked_emails',
+    sa.Column('doctor_id', sa.Uuid(), nullable=False),
+    sa.Column('email', sa.String(length=255), nullable=False),
+    sa.Column('name', sa.String(length=120), nullable=True),
+    sa.Column('reason', sa.String(length=300), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('id', sa.Uuid(), nullable=False),
+    sa.ForeignKeyConstraint(['doctor_id'], ['users.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('doctor_id', 'email', name='uq_blocked_email')
+    )
+    op.create_index(op.f('ix_blocked_emails_doctor_id'), 'blocked_emails', ['doctor_id'], unique=False)
+    op.create_index(op.f('ix_blocked_emails_email'), 'blocked_emails', ['email'], unique=False)
+    op.create_index(op.f('ix_blocked_emails_id'), 'blocked_emails', ['id'], unique=False)
     op.create_table('booking_types',
     sa.Column('doctor_id', sa.Uuid(), nullable=False),
     sa.Column('title', sa.String(length=40), nullable=False),
     sa.Column('price', sa.Numeric(precision=10, scale=2), nullable=False),
     sa.Column('description', sa.String(length=200), nullable=False),
     sa.Column('active', sa.Boolean(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.ForeignKeyConstraint(['doctor_id'], ['users.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
@@ -58,7 +74,7 @@ def upgrade() -> None:
     op.create_table('conversations',
     sa.Column('doctor_id', sa.Uuid(), nullable=False),
     sa.Column('client_id', sa.Uuid(), nullable=False),
-    sa.Column('unread', sa.Integer(), nullable=False),
+    sa.Column('doctor_unread', sa.Integer(), nullable=False),
     sa.Column('client_unread', sa.Integer(), nullable=False),
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.ForeignKeyConstraint(['client_id'], ['users.id'], ondelete='CASCADE'),
@@ -84,10 +100,7 @@ def upgrade() -> None:
     sa.Column('doctor_id', sa.Uuid(), nullable=False),
     sa.Column('client_id', sa.Uuid(), nullable=False),
     sa.Column('filename', sa.String(length=255), nullable=False),
-    sa.Column('stored_name', sa.String(length=255), nullable=False),
     sa.Column('kind', sa.String(length=10), nullable=False),
-    sa.Column('uploaded_by', sa.String(length=10), nullable=False),
-    sa.Column('size_bytes', sa.Integer(), nullable=False),
     sa.Column('is_new', sa.Boolean(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('id', sa.Uuid(), nullable=False),
@@ -127,13 +140,13 @@ def upgrade() -> None:
     sa.Column('date', sa.DATE(), nullable=False),
     sa.Column('time', sa.Time(), nullable=False),
     sa.Column('status', sa.String(length=20), nullable=False),
-    sa.Column('notes', sa.Text(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.ForeignKeyConstraint(['client_id'], ['users.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['doctor_id'], ['users.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['type_id'], ['booking_types.id'], ondelete='SET NULL'),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('date', 'time', 'id')
     )
     op.create_index(op.f('ix_appointments_client_id'), 'appointments', ['client_id'], unique=False)
     op.create_index(op.f('ix_appointments_date'), 'appointments', ['date'], unique=False)
@@ -141,7 +154,7 @@ def upgrade() -> None:
     op.create_index(op.f('ix_appointments_id'), 'appointments', ['id'], unique=False)
     op.create_table('messages',
     sa.Column('conversation_id', sa.Uuid(), nullable=False),
-    sa.Column('sender', sa.String(length=10), nullable=False),
+    sa.Column('sender_id', sa.Uuid(), nullable=False),
     sa.Column('text', sa.Text(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('id', sa.Uuid(), nullable=False),
@@ -150,12 +163,14 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_messages_conversation_id'), 'messages', ['conversation_id'], unique=False)
     op.create_index(op.f('ix_messages_id'), 'messages', ['id'], unique=False)
+    op.create_index(op.f('ix_messages_sender_id'), 'messages', ['sender_id'], unique=False)
     # ### end Alembic commands ###
 
 
 def downgrade() -> None:
     """Downgrade schema."""
     # ### commands auto generated by Alembic - please adjust! ###
+    op.drop_index(op.f('ix_messages_sender_id'), table_name='messages')
     op.drop_index(op.f('ix_messages_id'), table_name='messages')
     op.drop_index(op.f('ix_messages_conversation_id'), table_name='messages')
     op.drop_table('messages')
@@ -182,6 +197,11 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_booking_types_id'), table_name='booking_types')
     op.drop_index(op.f('ix_booking_types_doctor_id'), table_name='booking_types')
     op.drop_table('booking_types')
+    op.drop_index(op.f('ix_blocked_emails_id'), table_name='blocked_emails')
+    op.drop_index(op.f('ix_blocked_emails_email'), table_name='blocked_emails')
+    op.drop_index(op.f('ix_blocked_emails_doctor_id'), table_name='blocked_emails')
+    op.drop_table('blocked_emails')
     op.drop_index(op.f('ix_users_id'), table_name='users')
+    op.drop_index(op.f('ix_users_email'), table_name='users')
     op.drop_table('users')
     # ### end Alembic commands ###
