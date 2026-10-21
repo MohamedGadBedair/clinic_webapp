@@ -130,4 +130,21 @@ class DashboardOut(BaseModel):
     appointments:list[AppointmentPablic]
     total_New_files:int|None
     total_appointments:int
-    # total_New_Messages:int
+    total_New_Messages:int
+
+class MessageOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id:UUID
+    conversation_id:UUID
+    sender_id:UUID
+    text:str
+    created_at:datetime
+class ConversationOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id:UUID
+    doctor_id:UUID
+    client_id:UUID
+    messages:list[MessageOut]
+    
