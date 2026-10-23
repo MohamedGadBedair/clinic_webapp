@@ -34,6 +34,11 @@ class Settings(BaseSettings):
     mail_from: str = "noreply@example.com"
     mail_use_tls: bool = True
 
+    # payment secrets
+    payment_secret_key:SecretStr=SecretStr("")
+    payment_public_key:SecretStr=SecretStr("")
+    payment_integration_id:str
+
     frontend_url: str = "http://localhost:8000"
     
     # base database secrets

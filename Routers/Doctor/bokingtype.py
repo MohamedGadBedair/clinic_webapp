@@ -25,14 +25,14 @@ async def booking_list(doctor_id: UUID,db: Annotated[AsyncSession,Depends(get_db
     
     # check if the current doctor is authorized to view the booking type
     if current_user.id != doctor_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to view this booking type.")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to view this booking types.")
     
     # check if the current user is a client for the given doctor
     if current_user.role == "CLIENT":
         client_q = await db.execute(select(DoctorClient).where(DoctorClient.client_id == current_user.id, DoctorClient.doctor_id == doctor_id))
         client = client_q.scalars().first()
         if not client:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to view this booking type.")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to view this booking types.")
    
     # Fetch the booking from the database
     booking_q = await db.execute(select(BookingType).where(BookingType.doctor_id == doctor_id))
@@ -42,6 +42,11 @@ async def booking_list(doctor_id: UUID,db: Annotated[AsyncSession,Depends(get_db
 # Create Booking Type API
 @router.post("/create", status_code=status.HTTP_201_CREATED, response_model=BookingPablic)
 async def create_booking(data: BookingCreate, db: Annotated[AsyncSession,Depends(get_db)], current_Doctor:CurrentDoctor):
+    doctor_booking_types_list_q = await db.execute(select(BookingType).where(BookingType.doctor_id==current_Doctor.id))
+    doctor_booking_types_list = doctor_booking_types_list_q.scalars().first()
+    
+    if doctor_booking_types_list :
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="this type name aready used")
     
     # Create a new booking in the database
     new_booking = BookingType(**data.model_dump())

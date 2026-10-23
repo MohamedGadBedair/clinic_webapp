@@ -25,7 +25,7 @@ class UserUpdate(BaseModel):
     email: EmailStr|None = Field(default=None,max_length=100)
     description: str|None = Field(default=None,max_length=255)
     phone_code:str|None=Field(default="+20",pattern=r"^\+\d{1,4}$", description="رمز الدولة بصيغة دولية")
-    phone: str|None = Field(pattern=r"^\+?[1-9]\d{1,14}$", description="رقم الهاتف بصيغة دولية")
+    phone: str|None = Field(min_length=9, max_length=20, description="رقم الهاتف بصيغة دولية")
     dob: date|None = Field(default=None)
     city:City|None = Field(default=None)
     gender:Gender|None=None
@@ -44,6 +44,7 @@ class UserPablic(BaseModel):
     user_profile_img: str|None
     image_path: str
     dob: date|None = None
+    user_age: int|None = None
     is_online: bool
     model_config = ConfigDict(from_attributes=True)
 class UserPrivate(UserPablic): 
@@ -131,7 +132,7 @@ class DashboardOut(BaseModel):
     total_New_files:int|None
     total_appointments:int
     total_New_Messages:int
-
+# ==================================={Message Schemas}======================================
 class MessageOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -140,6 +141,7 @@ class MessageOut(BaseModel):
     sender_id:UUID
     text:str
     created_at:datetime
+# =================================={Conversation Schemas}======================================
 class ConversationOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

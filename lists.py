@@ -7,16 +7,20 @@ class Gender(enum.Enum):
 
 class UserRole(enum.Enum):
     CLIENT = "client"
-    # ASSESTANT = "assestant"
     DOCTOR = "doctor"
-    # ADMIN = "admin"
 
 class AppointmentStatus(enum.Enum):
     CONFIRMED = "confirmed"
     WAITING = "waiting"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
+    PENDING='pending'
 
+class PaymentStatus(enum.Enum):
+    PENDING='pending'
+    COMPLETED="completed"
+    FAILED="failed"
+    
 class MessageStatus(enum.Enum):
     SENT = "sent"
     DELIVERED = "delivered"
@@ -53,4 +57,3 @@ class City(enum.Enum):
   SOHAG = "Sohag"
   SHARM_EL_SHEIKH = "Sharm El Sheikh"
   BANHA = "Banha"
-  # وممكن تضيف أي مدينة تانية محتاجها...

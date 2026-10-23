@@ -7,7 +7,7 @@ from sqlalchemy import select
 from database import get_db
 from models import DoctorClient,Conversation
 
-
+# ========================={chat querys}=============================================
 async def get_user_conection_list(current_user,db:Annotated[AsyncSession,Depends(get_db)]):
     
     if current_user.role == "CLIENT":
@@ -21,7 +21,6 @@ async def get_user_conection_list(current_user,db:Annotated[AsyncSession,Depends
         user_list = [client.client_id for client in doctor_client]
 
     return user_list
-
 async def get_user_conversation(current_user,recipient_id,db:Annotated[AsyncSession,Depends(get_db)]):
     
     if current_user.role == "DOCTOR":
@@ -47,3 +46,5 @@ async def get_user_conversation(current_user,recipient_id,db:Annotated[AsyncSess
 
 
     return conversation
+# ========================={chat querys}=============================================
+

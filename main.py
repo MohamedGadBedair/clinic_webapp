@@ -12,7 +12,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import engine, get_db
-from Routers import user, authentication, files, Appointment, dashboard, chat
+from Routers import user, authentication, files, Appointment, dashboard, chat, payment
 from Routers.Doctor import bokingtype, block
 import models
 from config import settings
@@ -52,6 +52,7 @@ app.router.include_router(router=files.router,prefix='/api/clients/files',tags=[
 app.router.include_router(router=Appointment.router,prefix='/api/clients/appointments',tags=['Appointments'])
 app.router.include_router(router=bokingtype.router,prefix='/api/doctors/bookingtypes',tags=['Doctor bookingtypes'])
 app.router.include_router(router=block.router,prefix='/api/doctors/blocked',tags=['Doctor Blocked Emails'])
+app.router.include_router(router=payment.router,prefix="/api/payment",tags=["Payment"])
 # =================================={ Helth Chick Route }=========================================
 @app.get('/health')
 async def health_chick(db:Annotated[AsyncSession,Depends(get_db)]):

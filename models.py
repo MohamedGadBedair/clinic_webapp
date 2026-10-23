@@ -45,6 +45,18 @@ class User(Base):
         if self.user_profile_img:
             return f'/media/profile_pics/{self.user_profile_img}'
         return '/static/profile_pics/default.jpg'
+    @property
+    def user_age(self) -> int | None:
+        if not self.dob:
+            return None
+        today = datetime.now().date()
+        # Calculate years, accounting for whether their birthday has occurred yet this year
+        return (
+            today.year
+            - self.dob.year
+            - ((today.month, today.day) < (self.dob.month, self.dob.day))
+        )
+    
 class DoctorClient(Base):
     __tablename__ = "doctors_clients"
 
@@ -79,6 +91,7 @@ class BookingType(Base):
     price: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
     description: Mapped[str] = mapped_column(String(200), default="")
     active: Mapped[bool] = mapped_column(Boolean, default=True)
+    
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     updated_at:Mapped[datetime]=mapped_column(DateTime, default=utcnow,onupdate=utcnow)
 # ====================={Appointment Table}=================================================
@@ -90,7 +103,7 @@ class Appointment(Base):
     type_id: Mapped[UUID | None] = mapped_column(ForeignKey("booking_types.id", ondelete="SET NULL"), nullable=True)
     date: Mapped[PyDate] = mapped_column(DATE, index=True,primary_key=True)
     time: Mapped[PyTime] = mapped_column(Time,primary_key=True)
-    status: Mapped[str] = mapped_column(String(20), default="waiting")  # confirmed | waiting | completed | cancelled
+    status: Mapped[str] = mapped_column(String(20), default="PENDING")  # confirmed | waiting | completed | cancelled
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     updated_at:Mapped[datetime]=mapped_column(DateTime, default=utcnow,onupdate=utcnow)
     
@@ -101,10 +114,25 @@ class Appointment(Base):
     def appointment_type(self):
         if self.type_id:
             return self.type.title
-    
+    @property
+    def appointment_price(self):
+        if self.type_id:
+            return self.type.price
     @property
     def client_name(self):
         return f'{self.client.username}' 
+# ==================={Payment Table}=================================================
+class Payment(Base):
+    __tablename__ = "payments"
+
+    appointment_id:Mapped[UUID] = mapped_column(ForeignKey("appointments.id"), index=True,unique=True)
+    doctor_email: Mapped[UUID] = mapped_column(String, index=True)
+    client_email: Mapped[UUID] = mapped_column(String, index=True)
+    amount: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
+    status: Mapped[str] = mapped_column(String(20), default="PENDING")  # pending | completed | failed
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)      
+    updated_at:Mapped[datetime]=mapped_column(DateTime, default=utcnow,onupdate=utcnow)
 # ====================={Conversation Table}=================================================
 class Conversation(Base):
     __tablename__ = "conversations"
@@ -112,8 +140,9 @@ class Conversation(Base):
 
     doctor_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     client_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
-    doctor_unread: Mapped[int] = mapped_column(Integer, default=0)          # unread by the doctor
+    doctor_unread: Mapped[int] = mapped_column(Integer, default=0)  # unread by the doctor
     client_unread: Mapped[int] = mapped_column(Integer, default=0)  # unread by the client
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)      
 
     messages: Mapped[list["Message"]] = relationship(back_populates="conversation", cascade="all, delete-orphan",
                                                      order_by="Message.id")
@@ -127,20 +156,6 @@ class Message(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
     conversation: Mapped[Conversation] = relationship(back_populates="messages",lazy="selectin")
-# ===================={Medical Files Table}=================================================
-class MedicalFile(Base):
-    __tablename__ = "medical_files"
-
-    doctor_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    client_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    filename: Mapped[str] = mapped_column(String(255))
-    kind: Mapped[str] = mapped_column(String(10),nullable=False)  # lab | imaging | report
-    is_new: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
-
-    @property
-    def file_path(self):
-        return f'/uploads/{self.filename}'
 # # ==================={unsentedmail Table}=================================================
 class UnsentEmail(Base):
     __tablename__ = "unsent_emails"
@@ -149,17 +164,6 @@ class UnsentEmail(Base):
     data: Mapped[dict] = mapped_column(JSON, nullable=True)
     
     user: Mapped[User] = relationship(lazy="selectin", primaryjoin="User.id==UnsentEmail.user_id", viewonly=True)    
-# # ==================={Payment Table}=================================================
-# class Payment(Base):
-#     __tablename__ = "payments"
-
-#     doctor_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-#     client_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-#     amount: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
-#     method: Mapped[str] = mapped_column(String(20), default="card")  # card | cash | online
-#     status: Mapped[str] = mapped_column(String(20), default="pending")  # pending | completed | failed
-#     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)      
-#     updated_at:Mapped[datetime]=mapped_column(DateTime, default=utcnow,onupdate=utcnow)
 # # =================={Notification Table}=================================================
 # class Notification(Base):
 #     __tablename__ = "notifications"
@@ -188,3 +192,18 @@ class BlockedEmail(Base):
     name: Mapped[str] = mapped_column(String(120), nullable=True)
     reason: Mapped[str] = mapped_column(String(300), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+# ===================={Medical Files Table}=================================================
+class MedicalFile(Base):
+    __tablename__ = "medical_files"
+
+    doctor_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    client_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    filename: Mapped[str] = mapped_column(String(255))
+    kind: Mapped[str] = mapped_column(String(10),nullable=False)  # lab | imaging | report
+    is_new: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+    @property
+    def file_path(self):
+        return f'/uploads/{self.filename}'

@@ -8,7 +8,7 @@ import json
 from database import get_db
 from models import Conversation
 from schemas import ConversationOut
-from websocket_manager import manager
+from services.websocket_manager import manager
 from auth import get_current_user,CurrentUser
 from services.query_utils import get_user_conection_list,get_user_conversation
 # ==============================={Routers}=================================
