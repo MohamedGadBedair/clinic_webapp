@@ -18,7 +18,9 @@ if sys.platform == "win32":
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
+
 SqlAlchemyDatabaseUrl = settings.db_url
+
 config = context.config
 config.set_main_option("sqlalchemy.url", SqlAlchemyDatabaseUrl)
 

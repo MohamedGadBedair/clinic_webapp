@@ -2,7 +2,8 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
+# for ai agents
+AGENTS.md
 # C extensions
 *.so
 

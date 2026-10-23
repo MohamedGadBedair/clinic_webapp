@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     # payment secrets
     payment_secret_key:SecretStr=SecretStr("")
     payment_public_key:SecretStr=SecretStr("")
-    payment_integration_id:str
+    payment_integration_id:int
 
     frontend_url: str = "http://localhost:8000"
     

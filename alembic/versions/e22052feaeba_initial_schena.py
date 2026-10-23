@@ -1,8 +1,8 @@
 """initial schena
 
-Revision ID: 24886bacef42
+Revision ID: e22052feaeba
 Revises: 
-Create Date: 2026-10-22 15:59:47.833121
+Create Date: 2026-10-23 16:43:26.434391
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '24886bacef42'
+revision: str = 'e22052feaeba'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -158,8 +158,7 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['client_id'], ['users.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['doctor_id'], ['users.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['type_id'], ['booking_types.id'], ondelete='SET NULL'),
-    sa.PrimaryKeyConstraint('date', 'time', 'id'),
-    sa.UniqueConstraint('id')  # <-- Add this line so payments can reference it!
+    sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_appointments_client_id'), 'appointments', ['client_id'], unique=False)
     op.create_index(op.f('ix_appointments_date'), 'appointments', ['date'], unique=False)
@@ -189,7 +188,7 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['appointment_id'], ['appointments.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index(op.f('ix_payments_appointment_id'), 'payments', ['appointment_id'], unique=False)
+    op.create_index(op.f('ix_payments_appointment_id'), 'payments', ['appointment_id'], unique=True)
     op.create_index(op.f('ix_payments_client_email'), 'payments', ['client_email'], unique=False)
     op.create_index(op.f('ix_payments_doctor_email'), 'payments', ['doctor_email'], unique=False)
     op.create_index(op.f('ix_payments_id'), 'payments', ['id'], unique=False)
