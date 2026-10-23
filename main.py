@@ -12,9 +12,8 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import engine, get_db
-from Routers import user, authentication, files, Appointment, dashboard, chat, payment
+from Routers import user, authentication, files, appointment, dashboard, chat, payment
 from Routers.Doctor import bokingtype, block
-import models
 from config import settings
 # from schemas import 
 #=================================={app creation}=====================================
@@ -49,7 +48,7 @@ app.router.include_router(router=user.router,prefix='/api/users',tags=['Users'])
 app.include_router(router=chat.router, prefix='/api/chats', tags=['Chat'])
 app.router.include_router(router=dashboard.router,prefix='/api/dashboard',tags=['Dashboard'])
 app.router.include_router(router=files.router,prefix='/api/clients/files',tags=['Files'])
-app.router.include_router(router=Appointment.router,prefix='/api/clients/appointments',tags=['Appointments'])
+app.router.include_router(router=appointment.router,prefix='/api/clients/appointments',tags=['Appointments'])
 app.router.include_router(router=bokingtype.router,prefix='/api/doctors/bookingtypes',tags=['Doctor bookingtypes'])
 app.router.include_router(router=block.router,prefix='/api/doctors/blocked',tags=['Doctor Blocked Emails'])
 app.router.include_router(router=payment.router,prefix="/api/payment",tags=["Payment"])

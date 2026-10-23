@@ -18,7 +18,7 @@ class UserBase(BaseModel):
     email:EmailStr=Field(max_length=100)
 class UserCreate(UserBase):
     role:UserRole
-    doctor_id:UUID
+    doctor_id:UUID|None
     password:str = Field(min_length=8)
 class UserUpdate(BaseModel):
     username: str|None = Field(default=None,min_length=2,max_length=50)

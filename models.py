@@ -98,11 +98,11 @@ class BookingType(Base):
 class Appointment(Base):
     __tablename__ = "appointments"
 
-    doctor_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    client_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    doctor_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"),index=True)
+    client_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"),index=True)
     type_id: Mapped[UUID | None] = mapped_column(ForeignKey("booking_types.id", ondelete="SET NULL"), nullable=True)
-    date: Mapped[PyDate] = mapped_column(DATE, index=True,primary_key=True)
-    time: Mapped[PyTime] = mapped_column(Time,primary_key=True)
+    date: Mapped[PyDate] = mapped_column(DATE, index=True)
+    time: Mapped[PyTime] = mapped_column(Time)
     status: Mapped[str] = mapped_column(String(20), default="PENDING")  # confirmed | waiting | completed | cancelled
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     updated_at:Mapped[datetime]=mapped_column(DateTime, default=utcnow,onupdate=utcnow)

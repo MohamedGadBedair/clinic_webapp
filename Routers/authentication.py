@@ -23,11 +23,9 @@ from auth import(
     hash_password,
     verify_password,
     hashed_secret_token,
-    genetate_secret_token
 )
 
 from services.email_utils import(
-     send_password_reset_email,
      send_email_handler,
 )
 
@@ -260,7 +258,7 @@ async def reset_password(
     if not hash_token:
         raise HTTPException(status.HTTP_400_BAD_REQUEST,'Invalid or expired token')
     
-    if hash_token.expires_at<datetime.now(UTC):
+    if hash_token.expires_at<datetime.now(UTC).replace(tzinfo=None):
         raise HTTPException(status.HTTP_400_BAD_REQUEST,'Invalid or expired token')
 
     user_q=await db.execute(select(User).where(User.id==hash_token.user_id))
